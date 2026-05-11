@@ -1,4 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// ── STORAGE HELPERS ──────────────────────────────────────
+function loadPlayers() {
+  try {
+    const saved = localStorage.getItem("bagatelle_players");
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+}
+function savePlayers(players) {
+  try {
+    const toSave = players.map(p => ({ ...p, photo: p.photo && p.photo.length < 50000 ? p.photo : null }));
+    localStorage.setItem("bagatelle_players", JSON.stringify(toSave));
+  } catch(e) {}
+}
 
 const ADMIN_PASSWORD = "bagatelle2026";
 const TEAM_SIZE = 8; // máximo por time
@@ -200,7 +215,10 @@ const modal = {
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [view, setView] = useState("home");
-  const [players, setPlayers] = useState(initialPlayers);
+  const [players, setPlayers] = useState(() => loadPlayers() || initialPlayers);
+
+  // Save players to localStorage whenever they change
+  useEffect(() => { savePlayers(players); }, [players]);
   const [drawResult, setDrawResult] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [detailPlayer, setDetailPlayer] = useState(null);
