@@ -231,6 +231,11 @@ export default function App() {
   // Confirmações
   const [confirmPresence, setConfirmPresence] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
+  // Export/Import
+  const [showExport, setShowExport] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importCode, setImportCode] = useState("");
+  const [importMsg, setImportMsg] = useState("");
 
   if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
 
@@ -250,6 +255,21 @@ export default function App() {
     setView("players");
   }
   function deletePlayer(id) { setPlayers(prev => prev.filter(p => p.id !== id)); }
+  function exportPlayers() {
+    const mensalistas = players.filter(p => p.type === "mensalista");
+    const data = btoa(unescape(encodeURIComponent(JSON.stringify(mensalistas))));
+    setShowExport(data);
+  }
+  function importPlayers() {
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(importCode.trim()))));
+      if (!Array.isArray(data)) throw new Error();
+      const clean = data.map(p => ({ ...p, present: false, type: "mensalista" }));
+      setPlayers(prev => { const avulsos = prev.filter(p => p.type === "avulso"); return [...clean, ...avulsos]; });
+      setImportMsg("✅ " + clean.length + " jogadores importados com sucesso!");
+      setImportCode("");
+    } catch(e) { setImportMsg("❌ Código inválido. Tente novamente."); }
+  }
   function togglePresence(id) { setPlayers(prev => prev.map(p => p.id === id ? { ...p, present: !p.present } : p)); }
 
   function addAvulso() {
@@ -376,8 +396,29 @@ export default function App() {
           <div style={s.page}>
             <div style={s.pageHeader}>
               <h2 style={s.pageTitle}>Elenco</h2>
-              <button style={s.addBtn} onClick={openAddPlayer}>+ Adicionar</button>
+              <div style={{ display:"flex", gap:6 }}>
+                <button style={{ ...s.addBtn, background:"#1e293b" }} onClick={() => { exportPlayers(); setShowImport(false); }}>📤 Exportar</button>
+                <button style={{ ...s.addBtn, background:"#1e293b" }} onClick={() => { setShowImport(s => !s); setShowExport(false); setImportMsg(""); }}>📥 Importar</button>
+                <button style={s.addBtn} onClick={openAddPlayer}>+ Adicionar</button>
+              </div>
             </div>
+            {showExport && (
+              <div style={{ background:"#0a1628", border:"1px solid #38bdf8", borderRadius:12, padding:14, marginBottom:12 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:"#38bdf8", marginBottom:8 }}>📤 Código do Elenco — copie e envie para o time</div>
+                <textarea readOnly value={showExport} style={{ width:"100%", height:80, background:"#1e293b", border:"1px solid #334155", borderRadius:8, color:"#f1f5f9", fontSize:11, padding:8, fontFamily:"monospace", resize:"none" }} onClick={e => e.target.select()} />
+                <button style={{ marginTop:6, width:"100%", padding:8, background:"#38bdf8", border:"none", borderRadius:8, color:"#000", fontWeight:700, fontSize:13, cursor:"pointer" }} onClick={() => { navigator.clipboard.writeText(showExport); }}>📋 Copiar Código</button>
+                <button style={{ marginTop:6, width:"100%", padding:6, background:"none", border:"1px solid #334155", borderRadius:8, color:"#64748b", fontSize:12, cursor:"pointer" }} onClick={() => setShowExport(false)}>Fechar</button>
+              </div>
+            )}
+            {showImport && (
+              <div style={{ background:"#0a1628", border:"1px solid #34d399", borderRadius:12, padding:14, marginBottom:12 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:"#34d399", marginBottom:8 }}>📥 Importar Elenco — cole o código aqui</div>
+                <textarea value={importCode} onChange={e => setImportCode(e.target.value)} placeholder="Cole o código aqui..." style={{ width:"100%", height:80, background:"#1e293b", border:"1px solid #334155", borderRadius:8, color:"#f1f5f9", fontSize:11, padding:8, fontFamily:"monospace", resize:"none" }} />
+                {importMsg && <div style={{ fontSize:13, color: importMsg.startsWith("✅") ? "#34d399" : "#ef4444", margin:"6px 0" }}>{importMsg}</div>}
+                <button style={{ marginTop:6, width:"100%", padding:8, background:"#34d399", border:"none", borderRadius:8, color:"#000", fontWeight:700, fontSize:13, cursor:"pointer" }} onClick={importPlayers}>📥 Importar Jogadores</button>
+                <button style={{ marginTop:6, width:"100%", padding:6, background:"none", border:"1px solid #334155", borderRadius:8, color:"#64748b", fontSize:12, cursor:"pointer" }} onClick={() => { setShowImport(false); setImportMsg(""); }}>Fechar</button>
+              </div>
+            )}
             <div style={s.playerList}>
               {players.filter(p=>p.type==="mensalista").map(p => (
                 <div key={p.id} style={s.playerCard}>
