@@ -55,8 +55,19 @@ function multiTeamDraw(presentPlayers) {
   // Inicializa times vazios
   const teams = Array.from({ length: numTeams }, () => []);
 
-  // Snake draft com mensalistas (ordenados por nível)
-  const sorted = [...mensalistas].sort((a, b) => b.level - a.level);
+  // Separar goleiros e outros jogadores
+  const goalkeepers = mensalistas.filter(p => p.position === "GOL");
+  const others = mensalistas.filter(p => p.position !== "GOL");
+
+  // Distribuir goleiros: 1 por time (snake draft por nível)
+  const sortedGK = [...goalkeepers].sort((a, b) => b.level - a.level);
+  sortedGK.forEach((gk, i) => {
+    const teamIdx = i % numTeams;
+    teams[teamIdx].push(gk);
+  });
+
+  // Snake draft com os demais (ordenados por nível)
+  const sorted = [...others].sort((a, b) => b.level - a.level);
   sorted.forEach((p, i) => {
     const round = Math.floor(i / numTeams);
     const pos = i % numTeams;
@@ -129,63 +140,107 @@ function BagatelleCrestMini({ size = 36 }) {
 
 // ── LOGIN ────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState(false);
-  const [shake, setShake] = useState(false);
-  const [show, setShow] = useState(false);
-
-  function tryLogin() {
-    if (pw === ADMIN_PASSWORD) { onLogin(); }
-    else { setErr(true); setShake(true); setTimeout(() => setShake(false), 500); }
-  }
+  const [entered, setEntered] = useState(false);
 
   return (
     <div style={ls.root}>
+      {/* Campo de futebol animado no fundo */}
       <div style={ls.fieldBg}>
-        {[...Array(8)].map((_, i) => <div key={i} style={{ ...ls.fieldLine, top: `${10 + i * 11}%` }} />)}
-        <div style={ls.fieldCircle} />
+        <div style={ls.fieldOuter}>
+          <div style={ls.fieldCenter} />
+          <div style={ls.fieldCenterCircle} />
+          <div style={ls.fieldLineH} />
+          <div style={ls.fieldBoxLeft} />
+          <div style={ls.fieldBoxRight} />
+        </div>
       </div>
+
+      {/* Partículas decorativas */}
+      {[...Array(6)].map((_, i) => (
+        <div key={i} style={{ ...ls.particle, left: `${10 + i * 15}%`, animationDelay: `${i * 0.5}s`, animationDuration: `${3 + i * 0.4}s` }}>⚽</div>
+      ))}
+
       <div style={ls.card}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-          <div style={{ filter: "drop-shadow(0 0 22px rgba(56,189,248,0.4))", animation: "float 3s ease-in-out infinite" }}>
-            <BagatelleCrest size={150} />
+        {/* Escudo grande com glow */}
+        <div style={ls.crestWrap}>
+          <div style={{ filter: "drop-shadow(0 0 30px rgba(56,189,248,0.5))", animation: "float 3s ease-in-out infinite" }}>
+            <BagatelleCrest size={160} />
           </div>
         </div>
-        <h1 style={ls.title}>Área do Administrador</h1>
-        <p style={ls.sub}>Digite a senha para acessar o painel</p>
-        <div style={{ ...ls.inputWrap, animation: shake ? "shake 0.4s" : "none", borderColor: err ? "#ef4444" : "#1e3a5f" }}>
-          <span style={ls.lockIcon}>🔒</span>
-          <input style={ls.input} type={show ? "text" : "password"} placeholder="Senha do administrador"
-            value={pw} onChange={e => { setPw(e.target.value); setErr(false); }}
-            onKeyDown={e => e.key === "Enter" && tryLogin()} />
-          <button style={ls.eyeBtn} onClick={() => setShow(s => !s)}>{show ? "🙈" : "👁"}</button>
+
+        {/* Título principal */}
+        <div style={ls.titleSection}>
+          <h1 style={ls.mainTitle}>BAGATELLE</h1>
+          <div style={ls.titleLine} />
+          <p style={ls.subtitle}>FOOTBALL SOCIETY</p>
+          <p style={ls.since}>⭐ SINCE 2016 ⭐</p>
         </div>
-        {err && <div style={ls.errMsg}>❌ Senha incorreta. Tente novamente.</div>}
-        <button style={ls.loginBtn} onClick={tryLogin}>Entrar no Painel</button>
-        <div style={{ textAlign: "center" }}><span style={{ fontSize: 11, color: "#334155" }}>Acesso exclusivo · Bagatelle FC · Since 2016</span></div>
+
+        {/* Stats decorativas */}
+        <div style={ls.statsRow}>
+          <div style={ls.statItem}>
+            <span style={ls.statNum}>7</span>
+            <span style={ls.statLbl}>Society</span>
+          </div>
+          <div style={ls.statDivider} />
+          <div style={ls.statItem}>
+            <span style={ls.statNum}>8</span>
+            <span style={ls.statLbl}>Por time</span>
+          </div>
+          <div style={ls.statDivider} />
+          <div style={ls.statItem}>
+            <span style={ls.statNum}>∞</span>
+            <span style={ls.statLbl}>Raça</span>
+          </div>
+        </div>
+
+        {/* Botão de entrada */}
+        <button
+          style={{ ...ls.enterBtn, transform: entered ? "scale(0.97)" : "scale(1)" }}
+          onClick={() => { setEntered(true); setTimeout(onLogin, 300); }}
+        >
+          <span style={ls.enterIcon}>⚽</span>
+          <span style={ls.enterText}>ENTRAR NO SORTEIO</span>
+        </button>
+
+        <p style={ls.footer}>Bagatelle Football Society · Campo 7</p>
       </div>
+
       <style>{`
-        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes floatParticle { 0%{transform:translateY(100vh) rotate(0deg); opacity:0} 10%{opacity:0.6} 90%{opacity:0.3} 100%{transform:translateY(-100px) rotate(360deg); opacity:0} }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 20px rgba(56,189,248,0.3)} 50%{box-shadow:0 0 50px rgba(56,189,248,0.7)} }
       `}</style>
     </div>
   );
 }
 
 const ls = {
-  root: { minHeight: "100vh", background: "linear-gradient(160deg, #0a1628 0%, #0e2244 50%, #0a1628 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, position: "relative", overflow: "hidden" },
-  fieldBg: { position: "absolute", inset: 0, pointerEvents: "none" },
-  fieldLine: { position: "absolute", left: 0, right: 0, height: 1, background: "rgba(56,189,248,0.06)" },
-  fieldCircle: { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 320, height: 320, borderRadius: "50%", border: "1px solid rgba(56,189,248,0.06)" },
-  card: { background: "rgba(10,22,40,0.97)", border: "1px solid #1e3a5f", borderRadius: 24, padding: "28px 24px", width: "100%", maxWidth: 380, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" },
-  title: { fontSize: 20, fontWeight: 800, color: "#f1f5f9", textAlign: "center", margin: "0 0 6px" },
-  sub: { fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 20 },
-  inputWrap: { display: "flex", alignItems: "center", background: "#0e1e30", border: "1.5px solid #1e3a5f", borderRadius: 12, padding: "0 12px", marginBottom: 10, gap: 8 },
-  lockIcon: { fontSize: 16 },
-  input: { flex: 1, background: "none", border: "none", outline: "none", color: "#f1f5f9", fontSize: 15, padding: "13px 0", fontFamily: "monospace", letterSpacing: 2 },
-  eyeBtn: { background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: 4 },
-  errMsg: { fontSize: 13, color: "#ef4444", textAlign: "center", marginBottom: 10, background: "#450a0a44", borderRadius: 8, padding: 7 },
-  loginBtn: { width: "100%", padding: 14, background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)", border: "none", borderRadius: 12, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", marginBottom: 16, boxShadow: "0 4px 20px rgba(14,165,233,0.3)" },
+  root: { minHeight: "100vh", background: "linear-gradient(180deg, #020917 0%, #0a1628 40%, #0e2244 70%, #020917 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" },
+  fieldBg: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.06, pointerEvents: "none" },
+  fieldOuter: { width: 340, height: 220, border: "2px solid #38bdf8", borderRadius: 8, position: "relative" },
+  fieldCenter: { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 2, height: "100%", background: "#38bdf8" },
+  fieldCenterCircle: { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 70, height: 70, borderRadius: "50%", border: "2px solid #38bdf8" },
+  fieldLineH: { position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "transparent" },
+  fieldBoxLeft: { position: "absolute", left: 0, top: "25%", width: 50, height: "50%", border: "2px solid #38bdf8", borderLeft: "none" },
+  fieldBoxRight: { position: "absolute", right: 0, top: "25%", width: 50, height: "50%", border: "2px solid #38bdf8", borderRight: "none" },
+  particle: { position: "absolute", bottom: -20, fontSize: 18, opacity: 0, animation: "floatParticle 3s ease-in-out infinite", pointerEvents: "none" },
+  card: { position: "relative", zIndex: 1, width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 },
+  crestWrap: { marginBottom: 20 },
+  titleSection: { textAlign: "center", marginBottom: 24 },
+  mainTitle: { fontSize: 36, fontWeight: 900, color: "#f1f5f9", letterSpacing: 6, margin: 0, fontFamily: "Georgia, serif", textShadow: "0 0 30px rgba(56,189,248,0.5)" },
+  titleLine: { width: 60, height: 3, background: "linear-gradient(90deg, transparent, #38bdf8, transparent)", margin: "8px auto" },
+  subtitle: { fontSize: 13, color: "#38bdf8", letterSpacing: 4, fontWeight: 700, margin: "4px 0" },
+  since: { fontSize: 11, color: "#475569", letterSpacing: 2, margin: "6px 0 0" },
+  statsRow: { display: "flex", alignItems: "center", gap: 0, background: "rgba(14,34,68,0.8)", border: "1px solid #1e3a5f", borderRadius: 16, padding: "14px 24px", marginBottom: 28, width: "100%", justifyContent: "space-around" },
+  statItem: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2 },
+  statNum: { fontSize: 26, fontWeight: 900, color: "#38bdf8", lineHeight: 1 },
+  statLbl: { fontSize: 10, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 36, background: "#1e3a5f" },
+  enterBtn: { width: "100%", padding: "16px", background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)", border: "none", borderRadius: 16, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16, boxShadow: "0 8px 32px rgba(14,165,233,0.4)", animation: "pulse 2s ease-in-out infinite", transition: "transform 0.15s" },
+  enterIcon: { fontSize: 22 },
+  enterText: { fontSize: 16, fontWeight: 900, letterSpacing: 2 },
+  footer: { fontSize: 11, color: "#334155", textAlign: "center" },
 };
 
 // ── MODAL DE CONFIRMAÇÃO ─────────────────────────────────
@@ -325,7 +380,7 @@ export default function App() {
               <div style={s.logoSub}>Football Society</div>
             </div>
           </button>
-          <button style={s.logoutBtn} onClick={() => setLoggedIn(false)}>🔓 Sair</button>
+
         </div>
         <div style={s.navBar}>
           {[["home","🏠","Início"],["players","👥","Elenco"],["presence","✅","Presença"],["draw","⚽","Sorteio"]].map(([v,icon,label]) => (
@@ -581,7 +636,7 @@ export default function App() {
                   <div style={{ ...s.presAv, background:(p.present?"#16a34a":POS_COLOR[p.position])+"22", border:`2px solid ${p.present?"#34d399":POS_COLOR[p.position]}` }}>
                     {p.photo ? <img src={p.photo} alt="" style={s.avatarImg}/> : <span style={{ fontSize:13, fontWeight:800, color:p.present?"#34d399":POS_COLOR[p.position] }}>{getInitials(p.name)}</span>}
                   </div>
-                  <div style={{ fontSize:12, fontWeight:700, textAlign:"center", lineHeight:1.2 }}>{p.name}</div>
+                  <div style={{ fontSize:12, fontWeight:700, textAlign:"center", lineHeight:1.2, color:"#f1f5f9" }}>{p.name}</div>
                   <div style={{ ...s.posTagSm, background:POS_COLOR[p.position]+"22", color:POS_COLOR[p.position] }}>{p.position}</div>
                   <div style={{ fontSize:16 }}>{p.present?"✅":"⬜"}</div>
                 </button>
